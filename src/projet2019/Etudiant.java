@@ -19,7 +19,7 @@ import static projet2019.Projet2019.annee;
 
 public class Etudiant extends JPanel {
 
-    Collection<Langues> collLangues = new ArrayList();
+    Collection<Langues> collLangues;
     File file = new File("Etudiants.out");
     private JPanel IPPanel, IAPanel, EtudiantsPanel, ButtonsPanel, leftPanel, rightPanel;
     private JLabel label1, label2, label3, label11, label12, label13, label14, label15, label21, label22, label23, label24;
@@ -33,7 +33,6 @@ public class Etudiant extends JPanel {
 
     private WebTextField dateN, nomE;
     ArrayList<objetEtudiant> listEtud = new ArrayList();
-    ArrayList<objetEtudiant> tempList = new ArrayList();
 
     public Etudiant() {
 
@@ -369,9 +368,25 @@ public class Etudiant extends JPanel {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-           for(int i = 0; i<listEtud.size();i++){
-               text.append(listEtud.get(i).numD.toString() + "   " + listEtud.get(i).nomE.toString() + "\n");
-           }
+            FileInputStream fi;
+            ObjectInputStream oi;
+            try {
+                fi = new FileInputStream(file);
+                oi = new ObjectInputStream(fi);
+                listEtud = (ArrayList) oi.readObject();
+                for (int i = 0; i < listEtud.size(); i++) {
+
+                    text.append(listEtud.get(i).numD.toUpperCase().toString() + " " + listEtud.get(i).nomE.toString() + "\n");
+                }
+            } catch (FileNotFoundException ex) {
+                System.out.println("Error with Etudiants.out");
+                ex.printStackTrace();
+            } catch (IOException ex) {
+                System.out.println("Error with class");
+                ex.printStackTrace();
+            } catch (ClassNotFoundException ex) {
+                ex.printStackTrace();
+            }
         }
     }
 
@@ -397,36 +412,13 @@ public class Etudiant extends JPanel {
             FileInputStream fi;
             ObjectInputStream oi;
 
-            FileInputStream fin;
-            ObjectInputStream oin;
-            try {
-                fin = new FileInputStream(file);
-                oin = new ObjectInputStream(fin);
-                tempList = (ArrayList) oin.readObject();
-                if (tempList.isEmpty()) {
-                    successdossier = true;
-                    numeroDossier = numD.getText().toUpperCase();
-                } else {
-                    for (int i = 0; i < tempList.size(); i++) {
-
-                        if (numD.getText() == tempList.get(i).numD) {
-                            JOptionPane.showMessageDialog(null, "ID not available", "Message", JOptionPane.OK_OPTION);
-                            successdossier = false;
-                        } else {
-                            numeroDossier = numD.getText().toUpperCase();
-                            successdossier = true;
-                        }
-
-                    }
-                }
-            } catch (FileNotFoundException ex) {
-                System.out.println("Error with Etudiants.out");
-                ex.printStackTrace();
-            } catch (IOException ex) {
-                System.out.println("list fadye");
-                ex.printStackTrace();
-            } catch (ClassNotFoundException ex) {
-                ex.printStackTrace();
+            if (isUniqueID(numD.getText())) {
+                numeroDossier = numD.getText();
+                successdossier = true;
+            } else {
+                successdossier = false;
+                JOptionPane.showMessageDialog(null, "Etudiant deja inscrit", "Message", JOptionPane.OK_OPTION);
+                numD.setText("");
             }
 
             if (containsDigit(nomE.getText())) {
@@ -467,13 +459,13 @@ public class Etudiant extends JPanel {
 
             diplome = Diplome.getSelectedItem().toString();
 
-            if (isValidYear(anneeO.getText()) == true) {
-                successannee = true;
-                anneeObtenue = Integer.parseInt(anneeO.getText());
-            } else {
+            if (Integer.parseInt(anneeO.getText()) < 2012 || Integer.parseInt(anneeO.getText()) > 2018) {
                 successannee = false;
                 JOptionPane.showMessageDialog(null, "Please enter a valid Year", "Message", JOptionPane.OK_OPTION);
                 anneeO.setText("");
+            } else {
+                successannee = true;
+                anneeObtenue = Integer.parseInt(anneeO.getText());
             }
 
             if (Fr.isSelected()) {
@@ -498,8 +490,7 @@ public class Etudiant extends JPanel {
                 int res = anneeC - Integer.parseInt(part2);
                 anneeA.setText(res + "");
             }
-            if (successdossier == true && successdate == true && successnom == true && successannee == true) {
-
+            if (successdossier && successdate && successnom && successannee) {
                 objetEtudiant oe = new objetEtudiant(anneeUniversitaire, specialite, numeroDossier, nomEtudiant, dateNaissance, villeNaissance, sexe, diplome, anneeObtenue, langues, anneeAcademique);
                 listEtud.add(oe);
                 ObjectOutputStream out;
@@ -507,9 +498,10 @@ public class Etudiant extends JPanel {
                 try {
                     fo = new FileOutputStream(file);
                     out = new ObjectOutputStream(fo);
-                    out.writeObject(oe+"\n");
+                    out.writeObject(listEtud);
                     out.flush();
-                    JOptionPane.showMessageDialog(null, "Student added successfully", "Message", JOptionPane.INFORMATION_MESSAGE);
+                    out.close();
+
                     System.out.println("Object written to file");
                 } catch (FileNotFoundException ex) {
                     System.out.println("Error with Etudiants.out");
@@ -520,50 +512,74 @@ public class Etudiant extends JPanel {
                 }
             }
         }
-    }
 
-    public boolean isValidDate(String dateN) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("d/M/yyyy");
-        dateFormat.setLenient(false);
-        try {
-            dateFormat.parse(dateN.trim());
-        } catch (ParseException pe) {
+        public boolean isValidDate(String dateN) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("d/M/yyyy");
+            dateFormat.setLenient(false);
+            try {
+                dateFormat.parse(dateN.trim());
+            } catch (ParseException pe) {
 
-            return false;
-        }
-        return true;
-    }
-
-    public boolean isValidYear(String year) {
-        boolean validYear = false;
-        int yearInt = 0;
-        if (year.matches("[0-9]+")) {
-            validYear = true;
-            yearInt = Integer.parseInt(year);
+                return false;
+            }
+            return true;
         }
 
-        if (yearInt < 2012 || yearInt > 2018) {
-
-            validYear = false;
-
-        } else {
-            validYear = true;
-        }
-        return validYear;
-    }
-
-    public boolean containsDigit(String s) {
-        boolean containsDigit = false;
-
-        if (s != null && !s.isEmpty()) {
-            for (char c : s.toCharArray()) {
-                if (containsDigit = Character.isDigit(c)) {
-                    break;
+        public boolean isUniqueID(String id) {
+            boolean successdossier = false;
+            listEtud = readFromFile("Etudiants.out");
+            if (listEtud.isEmpty()) {
+                successdossier = true;
+            } else {
+                for (int i = 0; i < listEtud.size(); i++) {
+                    String tempNumD = listEtud.get(i).numD.toString();
+                    if (tempNumD == null) {
+                        tempNumD = "";
+                    }
+                    if (id.equalsIgnoreCase(tempNumD)) {
+                        successdossier = false;
+                    } else {
+                        successdossier = true;
+                    }
                 }
             }
+
+            return successdossier;
         }
 
-        return containsDigit;
-    }
+        public ArrayList<objetEtudiant> readFromFile(String namefile) {
+            ArrayList<objetEtudiant> test = new ArrayList<objetEtudiant>();
+            try {
+                ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file));
+                Object t = ois.readObject();
+                System.out.println("test"+t);
+//                while (true) {
+//                    Object o1 = ois.readObject();
+//                    test.add(o1);
+//                }
+                ois.close();
+            } catch (Exception e) {
 
+                System.out.println(e);
+            }
+//            listEtud = test;
+            System.out.println("test"+test);
+            return listEtud;
+        }
+
+        public boolean containsDigit(String s) {
+            boolean containsDigit = false;
+
+            if (s != null && !s.isEmpty()) {
+                for (char c : s.toCharArray()) {
+                    if (containsDigit = Character.isDigit(c)) {
+                        break;
+                    }
+                }
+            }
+
+            return containsDigit;
+        }
+
+    }
 }
